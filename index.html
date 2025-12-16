@@ -323,7 +323,10 @@
             <button class="start-btn" onclick="loginAdmin()">登录</button>
             <div id="adminContent" class="hidden" style="margin-top:20px;">
                 <p>总卡密: <span id="totalCards">0</span></p>
-                <button class="start-btn" style="margin-top:10px;" onclick="genCards()">生成10个卡密</button>
+<div style="margin-top:15px; display:flex; gap:10px; align-items:center;">
+    <input type="number" id="genCount" class="input-box" style="width:100px; margin:0; padding:12px; text-align:center;" placeholder="数量" value="50">
+    <button class="start-btn" style="margin:0; flex:1;" onclick="genCards()">批量生成</button>
+</div>
                 <button style="margin-top:10px; width:100%; padding:10px;" onclick="location.reload()">返回</button>
             </div>
         </div>
@@ -618,16 +621,33 @@
                 document.getElementById('adminContent').classList.remove('hidden');
             }
         }
-        function genCards() {
-            let s = "";
-            for(let i=0;i<10;i++) s+= "VIP-" + Math.random().toString(36).substr(2,6).toUpperCase() + "\n";
-            const b = new Blob([s],{type:'text/plain'});
-            const u = URL.createObjectURL(b);
-            const a = document.createElement('a');
-            a.href=u; a.download='cards.txt'; a.click();
-        }
+function genCards() {
+    // 获取输入框的值，如果没有输入则默认生成10个
+    const countInput = document.getElementById('genCount').value;
+    const count = parseInt(countInput) || 10;
+
+    if(count > 5000) {
+        alert("一次最多生成5000个，以免浏览器卡顿");
+        return;
+    }
+
+    let s = "";
+    // 循环次数改为 count
+    for(let i=0; i < count; i++) {
+        s += "VIP-" + Math.random().toString(36).substr(2,6).toUpperCase() + "\n";
+    }
+    
+    const b = new Blob([s],{type:'text/plain'});
+    const u = URL.createObjectURL(b);
+    const a = document.createElement('a');
+    a.href=u; 
+    // 文件名加上数量和时间戳，方便管理
+    a.download = `卡密_${count}个_${new Date().toISOString().slice(0,10)}.txt`; 
+    a.click();
+}
     </script>
 </body>
 
 </html>
+
 
