@@ -53,8 +53,10 @@
             color: white; width: 100%; padding: 14px; border: none; border-radius: 50px;
             font-size: 1.1em; font-weight: bold; box-shadow: 0 6px 15px rgba(139, 94, 60, 0.3);
             cursor: pointer; transition: transform 0.2s;
+            display: block; /* 确保是块级元素 */
         }
         .start-btn:active { transform: scale(0.95); opacity: 0.9; }
+        .start-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
         .grid-features { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 25px; }
         .grid-item { background: #FFF9F0; padding: 15px 10px; border-radius: 10px; text-align: center; border: 1px solid #F5E6D3; }
@@ -67,9 +69,9 @@
         .list-item::before { content: "✔"; margin-right: 6px; color: #8B5E3C; font-weight: bold; }
 
         /* 上传页 */
-        .upload-area { border: 2px dashed #C69C6D; background: #FFFBF5; border-radius: 20px; padding: 30px 20px; text-align: center; cursor: pointer; margin: 20px 0; position: relative; }
-        .preview-img { width: 100%; max-height: 300px; object-fit: contain; border-radius: 10px; display: none; margin: 0 auto; }
-        .scan-line { position: absolute; top: 0; left: 0; width: 100%; height: 3px; background: #C69C6D; box-shadow: 0 0 10px #C69C6D; animation: scan 2s linear infinite; display: none; }
+        .upload-area { border: 2px dashed #C69C6D; background: #FFFBF5; border-radius: 20px; padding: 30px 20px; text-align: center; cursor: pointer; margin: 20px 0; position: relative; overflow: hidden;}
+        .preview-img { width: 100%; max-height: 300px; object-fit: contain; border-radius: 10px; display: none; margin: 0 auto; position: relative; z-index: 2;}
+        .scan-line { position: absolute; top: 0; left: 0; width: 100%; height: 3px; background: #C69C6D; box-shadow: 0 0 10px #C69C6D; animation: scan 2s linear infinite; display: none; z-index: 5;}
         @keyframes scan { 0% {top:0; opacity:0;} 20% {opacity:1;} 100% {top:100%; opacity:0;} }
 
         /* 性别切换开关 */
@@ -117,7 +119,10 @@
         .upload-proof-btn { background: linear-gradient(to right, #FF7043, #E64A19); color: white; width: 100%; padding: 14px; border-radius: 50px; font-weight: bold; font-size: 1em; margin-top: 15px; border: none; box-shadow: 0 5px 15px rgba(230, 74, 25, 0.3); cursor: pointer; }
 
         .hidden { display: none !important; }
-        .error-msg { background: #ffebee; color: #c62828; padding: 10px; border-radius: 8px; margin-top: 10px; text-align: center; display: none; font-size: 0.9em; }
+        
+        /* 错误提示 */
+        .error-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; display: none; align-items: center; justify-content: center; }
+        .error-content { background: white; padding: 25px; border-radius: 15px; text-align: center; width: 80%; max-width: 300px; }
         
         /* 进阶内容专用 */
         .vip-section { border: 1px solid #e0e0e0; border-radius: 12px; overflow: hidden; margin-bottom: 15px; background: #fff; }
@@ -142,6 +147,14 @@
 </head>
 <body>
 
+    <div id="errorModal" class="error-modal">
+        <div class="error-content">
+            <h3 style="margin-bottom: 10px; color: #333;" id="errorTitle">提示</h3>
+            <p style="color: #666; font-size: 0.9em; margin-bottom: 20px;" id="errorDesc"></p>
+            <button class="start-btn" onclick="document.getElementById('errorModal').style.display='none'">我知道了</button>
+        </div>
+    </div>
+
     <div class="container">
         <div id="coverPage" class="card">
             <div class="cover-header">
@@ -160,22 +173,22 @@
                 <div class="grid-item">
                     <div class="grid-icon">📐</div>
                     <div class="grid-title">骨相分析</div>
-                    <div class="grid-desc">面部折叠度</div>
+                    <div class="grid-desc">面部折叠度/立体度</div>
                 </div>
                 <div class="grid-item">
                     <div class="grid-icon">👁️</div>
                     <div class="grid-title">五官拆解</div>
-                    <div class="grid-desc">眼鼻唇形态</div>
+                    <div class="grid-desc">眼鼻唇形态精评</div>
                 </div>
                 <div class="grid-item">
                     <div class="grid-icon">💧</div>
                     <div class="grid-title">皮肤检测</div>
-                    <div class="grid-desc">平整度/光泽</div>
+                    <div class="grid-desc">平整度/光泽度</div>
                 </div>
                 <div class="grid-item">
                     <div class="grid-icon">💄</div>
                     <div class="grid-title">变美思路</div>
-                    <div class="grid-desc">妆容与微调</div>
+                    <div class="grid-desc">妆容与微调建议</div>
                 </div>
             </div>
 
@@ -187,7 +200,6 @@
                 <div class="list-item">完整《变美进阶指南》及医美模拟建议 <span style="color:#D32F2F; font-weight:800;">(1.9元解锁后查看)</span></div>
             </div>
 
-            <div class="error-msg" id="loginError"></div>
             <div style="text-align: center; margin-top: 20px; font-size: 0.8em; color: #ccc;" onclick="showAdmin()">管理员入口 →</div>
         </div>
 
@@ -208,7 +220,7 @@
             <input type="file" id="fileInput" accept="image/*" style="display: none;" onchange="handleFile(event)">
 
             <div id="genderSection" class="hidden">
-                <p style="text-align:center; font-size:0.9em; color:#666; margin-bottom:10px;">系统预判性别（可修改）：</p>
+                <p style="text-align:center; font-size:0.9em; color:#666; margin-bottom:10px;">系统预判性别（可点击修改）：</p>
                 <div class="gender-switch">
                     <div id="btnMale" class="gender-btn" onclick="setGender('male')">我是男生 ♂</div>
                     <div id="btnFemale" class="gender-btn" onclick="setGender('female')">我是女生 ♀</div>
@@ -218,7 +230,6 @@
             <div id="processText" style="text-align: center; color: #C69C6D; font-weight: bold; min-height: 24px;"></div>
             
             <button id="analyzeBtn" class="start-btn hidden" onclick="startAnalysis()">开始深度分析</button>
-            <div class="error-msg" id="uploadError"></div>
         </div>
 
         <div id="resultPage" class="card hidden">
@@ -265,7 +276,7 @@
                         <span class="qr-badge ali-bg">推荐支付宝</span>
                         <img src="alipay_qrcode.png" alt="支付宝">
                     </div>
-                    <div style="font-size:0.8em; color:#999;">💡 截图保存二维码 -> 打开APP扫一扫</div>
+                    <div style="font-size:0.8em; color:#999;">💡 截图保存二维码 -> 打开APP扫一扫 -> 相册导入</div>
                 </div>
 
                 <div class="copy-area">
@@ -312,224 +323,83 @@
         const ADMIN_PWD = 'lss900201';
         const VIP_CODE = 'VIP666';
 
-        // --- 核心数据结构 ---
         const REPORT_DATA = {
             male: [
                 {
-                    name: "清爽少年型",
-                    tags: ["骨骼感适中", "少年感强", "皮相干净"],
-                    bone: [
-                        { label: "面部立体度", score: 7.8, pro: "面部平整度高，无明显凹陷", con: "眉弓略平，侧面纵深感一般" },
-                        { label: "下颌线条", score: 8.5, pro: "下颌拐点清晰，线条利落", con: "下巴略短，显得幼态" }
-                    ],
-                    face: [
-                        { label: "眼睛", score: 8.2, pro: "眼裂适中，眼神清澈", con: "内眦赘皮轻微，眼窝不深" },
-                        { label: "鼻子", score: 8.0, pro: "鼻梁挺直，鼻头圆润", con: "鼻翼略宽，精致度可提升" }
-                    ],
-                    skin: [
-                        { label: "平整度", score: 8.5, pro: "无明显痘坑痘印", con: "T区毛孔可见" },
-                        { label: "光泽度", score: 7.2, pro: "肤色均匀", con: "稍微暗沉，需注意抗氧化" }
-                    ],
+                    name: "清爽少年型", tags: ["骨骼感适中", "少年感强", "皮相干净"],
+                    bone: [ { label: "面部立体度", score: 7.8, pro: "面部平整度高", con: "眉弓略平" }, { label: "下颌线条", score: 8.5, pro: "线条利落", con: "下巴略短" } ],
+                    face: [ { label: "眼睛", score: 8.2, pro: "眼神清澈", con: "眼窝不深" }, { label: "鼻子", score: 8.0, pro: "鼻梁挺直", con: "鼻翼略宽" } ],
+                    skin: [ { label: "平整度", score: 8.5, pro: "无明显痘印", con: "T区毛孔" }, { label: "光泽度", score: 7.2, pro: "肤色均匀", con: "注意抗氧化" } ],
                     premium: {
-                        starName: "刘昊然 / 许光汉",
-                        similarity: 88,
-                        starDesc: "骨骼量感小，皮相干净，五官分布舒展，适合走日系、盐系清爽路线，无需过度修饰。",
-                        ratioData: [
-                            {label: "面部折叠度", val: "75° (适中)"},
-                            {label: "三庭比例", val: "1:1:0.9 (幼态)"},
-                            {label: "鼻唇角", val: "95° (标准)"},
-                            {label: "下颌角", val: "120° (流畅)"}
-                        ],
-                        hairstyle: {
-                            name: "日系微分碎盖 / 纹理烫",
-                            color: "黑茶色 / 深棕色 (保持自然感)",
-                            tips: "刘海保留空气感，遮挡额头；两侧不要太厚，保持清爽。"
-                        },
-                        fashion: {
-                            style: "City Boy / 日系工装",
-                            colors: ["#ffffff", "#87CEEB", "#F5F5DC", "#A9A9A9"],
-                            tips: "多穿宽松衬衫、卫衣、工装裤。避免过于紧身的精神小伙装扮。"
-                        },
-                        makeup: [
-                            "<strong>底妆：</strong>使用哑光粉底，只需均匀肤色，保留轻微瑕疵更真实。",
-                            "<strong>眉毛：</strong>野生眉是灵魂，顺着毛流填充，不要画出明显边框。",
-                            "<strong>修容：</strong>仅需在鼻梁两侧轻扫，增加立体感即可，无需重修容。"
-                        ],
-                        medical: "您的骨相基础很好，鼻基底建议不做填充，保留自然少年感。日常护肤重点在于T区控油和黑头清理，保持'干净'是少年感的核心。"
+                        starName: "刘昊然 / 许光汉", similarity: 88,
+                        starDesc: "骨骼量感小，皮相干净，五官分布舒展，适合走日系、盐系清爽路线。",
+                        ratioData: [{label: "面部折叠度", val: "75°"}, {label: "三庭比例", val: "1:1:0.9"}],
+                        hairstyle: { name: "日系微分碎盖", color: "黑茶色", tips: "保留空气感刘海。" },
+                        fashion: { style: "City Boy", colors: ["#ffffff", "#87CEEB", "#F5F5DC"], tips: "宽松衬衫、卫衣。" },
+                        makeup: ["底妆：哑光粉底", "眉毛：野生眉"],
+                        medical: "骨相基础好，无需填充，注意控油。"
                     }
                 },
                 {
-                    name: "硬朗型男型",
-                    tags: ["骨相优越", "荷尔蒙爆棚", "抗老骨相"],
-                    bone: [
-                        { label: "面部立体度", score: 9.2, pro: "眉弓高挺，T区结构极其优秀", con: "太阳穴轻微凹陷（显硬朗）" },
-                        { label: "下颌线条", score: 9.5, pro: "下颌角折叠度完美，力量感强", con: "咬肌略大，需注意不要更宽" }
-                    ],
-                    face: [
-                        { label: "眼睛", score: 8.8, pro: "深邃有神，眼窝深", con: "眼尾纹可能较早出现" },
-                        { label: "鼻子", score: 9.0, pro: "山根起点高，鼻骨粗细适中", con: "无明显缺点" }
-                    ],
-                    skin: [
-                        { label: "平整度", score: 7.5, pro: "皮肤紧致", con: "可能有须根印记，注意修整" },
-                        { label: "光泽度", score: 7.0, pro: "健康小麦色", con: "需注意保湿防晒" }
-                    ],
+                    name: "硬朗型男型", tags: ["骨相优越", "荷尔蒙", "抗老"],
+                    bone: [ { label: "面部立体度", score: 9.2, pro: "眉弓高挺", con: "太阳穴微凹" }, { label: "下颌线条", score: 9.5, pro: "折叠度完美", con: "咬肌略大" } ],
+                    face: [ { label: "眼睛", score: 8.8, pro: "深邃有神", con: "眼尾纹" }, { label: "鼻子", score: 9.0, pro: "山根高", con: "无明显缺点" } ],
+                    skin: [ { label: "平整度", score: 7.5, pro: "紧致", con: "须根印记" }, { label: "光泽度", score: 7.0, pro: "小麦色", con: "注意防晒" } ],
                     premium: {
-                        starName: "彭于晏 / 李现",
-                        similarity: 92,
-                        starDesc: "典型的骨相美人，面部折叠度高，随着年龄增长，软组织流失后反而更有味道。",
-                        ratioData: [
-                            {label: "面部折叠度", val: "90° (极高)"},
-                            {label: "三庭比例", val: "1:1:1 (成熟)"},
-                            {label: "眉眼间距", val: "2.0cm (深邃)"},
-                            {label: "下颌角", val: "110° (方正)"}
-                        ],
-                        hairstyle: {
-                            name: "美式寸头 / 侧分油头 / 背头",
-                            color: "自然黑 (强调硬朗感)",
-                            tips: "务必露出额头和优越的眉弓！两侧铲青，保持利落。"
-                        },
-                        fashion: {
-                            style: "正装绅士 / 机车皮衣 / 运动风",
-                            colors: ["#000000", "#191970", "#556B2F", "#8B4513"],
-                            tips: "适合硬挺的面料，如西装、皮衣、丹宁。深色系最能衬托荷尔蒙。"
-                        },
-                        makeup: [
-                            "<strong>底妆：</strong>选择比肤色深一号的粉底，打造健康小麦肤色。",
-                            "<strong>眉毛：</strong>剑眉，强调眉峰的折角，增加力量感。",
-                            "<strong>修容：</strong>在颧骨下方和下颌线重点修容，强化骨骼结构。"
-                        ],
-                        medical: "咬肌发达显得脸宽，可适量注射肉毒素，但务必保留下颌角拐点。皮肤管理重点做光子嫩肤，改善须根处的色素沉淀。"
+                        starName: "彭于晏 / 李现", similarity: 92,
+                        starDesc: "典型的骨相美人，面部折叠度高，越老越有味道。",
+                        ratioData: [{label: "面部折叠度", val: "90°"}, {label: "眉眼间距", val: "2.0cm"}],
+                        hairstyle: { name: "美式寸头 / 背头", color: "自然黑", tips: "露出额头。" },
+                        fashion: { style: "正装 / 皮衣", colors: ["#000000", "#191970", "#556B2F"], tips: "硬挺面料，深色系。" },
+                        makeup: ["底妆：深色粉底", "修容：强调颧骨"],
+                        medical: "适量瘦脸针，但保留下颌角。"
                     }
                 }
             ],
             female: [
                 {
-                    name: "清冷氧气型",
-                    tags: ["头包脸", "清冷高级", "骨相干净"],
-                    bone: [
-                        { label: "面部立体度", score: 8.2, pro: "面中平整，鼻基底饱满", con: "侧颜纵深感较弱，属淡颜系" },
-                        { label: "下颌线条", score: 8.0, pro: "线条极其流畅，无多余赘肉", con: "下巴略后缩，显得娇憨" }
-                    ],
-                    face: [
-                        { label: "眼睛", score: 8.5, pro: "内眼角尖锐，自带疏离感", con: "眼距略宽（特色）" },
-                        { label: "鼻子", score: 8.3, pro: "鼻头精致小巧，海鸥线清晰", con: "山根起点略低" }
-                    ],
-                    skin: [
-                        { label: "平整度", score: 9.0, pro: "如剥壳鸡蛋般细腻", con: "角质层薄，易泛红" },
-                        { label: "光泽度", score: 8.8, pro: "通透感强", con: "需做好防晒防止长斑" }
-                    ],
+                    name: "清冷氧气型", tags: ["头包脸", "清冷高级", "骨相干净"],
+                    bone: [ { label: "面部立体度", score: 8.2, pro: "面中平整", con: "侧颜纵深弱" }, { label: "下颌线条", score: 8.0, pro: "线条流畅", con: "下巴略后缩" } ],
+                    face: [ { label: "眼睛", score: 8.5, pro: "内眼角尖锐", con: "眼距略宽" }, { label: "鼻子", score: 8.3, pro: "鼻头精致", con: "山根略低" } ],
+                    skin: [ { label: "平整度", score: 9.0, pro: "细腻", con: "易泛红" }, { label: "光泽度", score: 8.8, pro: "通透", con: "防长斑" } ],
                     premium: {
-                        starName: "刘亦菲 / 董洁 / 苍井优",
-                        similarity: 89,
-                        starDesc: "骨相干净，皮相紧致，是典型的东方骨相美。这种脸型最忌讳过度填充，保持留白才是高级感的来源。",
-                        ratioData: [
-                            {label: "面部折叠度", val: "65° (柔和)"},
-                            {label: "三庭比例", val: "1:1:0.8 (耐看)"},
-                            {label: "五官占比", val: "30% (适中)"},
-                            {label: "皮肤白度", val: "L*95 (极白)"}
-                        ],
-                        hairstyle: {
-                            name: "黑长直 / 羊毛卷 / 低马尾",
-                            color: "黑茶 / 蜂蜜茶 / 亚麻灰",
-                            tips: "一定要保留碎发修饰发际线（胎毛刘海）。不要剪厚重的齐刘海，会破坏灵气。"
-                        },
-                        fashion: {
-                            style: "新中式 / 极简风 / 森系",
-                            colors: ["#B0C4DE", "#FFB6C1", "#F5FFFA", "#E6E6FA"],
-                            tips: "面料选择真丝、棉麻、羊绒。避免大面积荧光色和复杂的印花。"
-                        },
-                        makeup: [
-                            "<strong>底妆：</strong>半哑光奶油肌，强调皮肤的通透感。",
-                            "<strong>眼妆：</strong>大地色消肿，强调睫毛的根根分明，眼线只画后半段。",
-                            "<strong>唇妆：</strong>低饱和度的豆沙色、奶茶色、裸色，模糊唇线。"
-                        ],
-                        medical: "切忌填充！玻尿酸会让你的面部失去清冷感而变得'发面'。如果想改善，可微调山根高度，但不要做太高。日常注重维稳和美白。"
+                        starName: "刘亦菲 / 董洁", similarity: 89,
+                        starDesc: "骨相干净，皮相紧致，典型的东方骨相美。",
+                        ratioData: [{label: "面部折叠度", val: "65°"}, {label: "五官占比", val: "30%"}],
+                        hairstyle: { name: "黑长直 / 羊毛卷", color: "黑茶 / 蜂蜜茶", tips: "保留碎发修饰。" },
+                        fashion: { style: "新中式 / 森系", colors: ["#B0C4DE", "#FFB6C1", "#F5FFFA"], tips: "真丝、棉麻。" },
+                        makeup: ["底妆：半哑光", "唇妆：低饱和豆沙色"],
+                        medical: "切忌填充！保持面部留白。"
                     }
                 },
                 {
-                    name: "人间富贵花",
-                    tags: ["明艳大气", "第一眼美女", "视觉冲击强"],
-                    bone: [
-                        { label: "面部立体度", score: 9.0, pro: "T区立体，面部折叠度高", con: "面部软组织较多，需防下垂" },
-                        { label: "下颌线条", score: 8.5, pro: "收放自如，大气端庄", con: "双下巴风险较高" }
-                    ],
-                    face: [
-                        { label: "眼睛", score: 9.5, pro: "大而明亮，眼裂宽", con: "眼周易疲劳，易有黑眼圈" },
-                        { label: "鼻子", score: 9.2, pro: "盒型鼻头，立体感强", con: "鼻翼稍宽（显贵气）" }
-                    ],
-                    skin: [
-                        { label: "平整度", score: 8.0, pro: "胶原蛋白满满", con: "易出油，毛孔问题" },
-                        { label: "光泽度", score: 8.5, pro: "白皙红润", con: "需抗糖化保持透亮" }
-                    ],
+                    name: "人间富贵花", tags: ["明艳大气", "视觉冲击强"],
+                    bone: [ { label: "面部立体度", score: 9.0, pro: "T区立体", con: "软组织多" }, { label: "下颌线条", score: 8.5, pro: "大气端庄", con: "双下巴风险" } ],
+                    face: [ { label: "眼睛", score: 9.5, pro: "大而明亮", con: "易疲劳" }, { label: "鼻子", score: 9.2, pro: "立体感强", con: "鼻翼稍宽" } ],
+                    skin: [ { label: "平整度", score: 8.0, pro: "胶原蛋白满", con: "易出油" }, { label: "光泽度", score: 8.5, pro: "白皙", con: "抗糖化" } ],
                     premium: {
-                        starName: "迪丽热巴 / 景甜 / 范冰冰",
-                        similarity: 94,
-                        starDesc: "五官量感大，面部留白少，适合浓妆，是人群中一眼就能看到的焦点。",
-                        ratioData: [
-                            {label: "面部折叠度", val: "85° (立体)"},
-                            {label: "三庭比例", val: "1:1:1 (标准)"},
-                            {label: "五官占比", val: "45% (极大)"},
-                            {label: "眼裂宽度", val: "3.5cm (大)"}
-                        ],
-                        hairstyle: {
-                            name: "大波浪卷发 / 港风复古卷",
-                            color: "黑发 / 红棕色 (强调对比度)",
-                            tips: "头发一定要蓬松，营造高颅顶，发量感要足，才能压得住明艳的五官。"
-                        },
-                        fashion: {
-                            style: "千金风 / 港风 / 华丽礼服",
-                            colors: ["#DC143C", "#000000", "#FFD700", "#4169E1"],
-                            tips: "适合丝绒、亮片、皮草等华丽材质。颜色要选高饱和度的，避免浑浊的颜色。"
-                        },
-                        makeup: [
-                            "<strong>眉毛：</strong>上挑的细眉或有眉峰的野生眉，增加气场。",
-                            "<strong>眼妆：</strong>可以使用亮片，眼线要黑且实，拉长眼型。",
-                            "<strong>唇妆：</strong>正红色、复古红是本命色，唇形要画饱满。"
-                        ],
-                        medical: "大五官的代价是软组织重，易下垂。热玛吉、超声炮是你的年度必修课。下颌缘如果不清晰，建议打提升针，保持从下巴到耳后的线条紧致。"
+                        starName: "迪丽热巴 / 景甜", similarity: 94,
+                        starDesc: "五官量感大，适合浓妆，人群中的焦点。",
+                        ratioData: [{label: "面部折叠度", val: "85°"}, {label: "五官占比", val: "45%"}],
+                        hairstyle: { name: "大波浪卷发", color: "黑发 / 红棕色", tips: "营造高颅顶。" },
+                        fashion: { style: "千金风 / 港风", colors: ["#DC143C", "#000000", "#FFD700"], tips: "丝绒、亮片。" },
+                        makeup: ["眉毛：上挑", "唇妆：正红色"],
+                        medical: "抗衰是重点，热玛吉/超声炮。"
                     }
                 },
                 {
-                    name: "甜酷辣妹风",
-                    tags: ["短圆脸", "幼态感", "可盐可甜"],
-                    bone: [
-                        { label: "面部立体度", score: 7.5, pro: "面部饱满，苹果肌丰富", con: "立体度一般，依赖光影" },
-                        { label: "下颌线条", score: 7.8, pro: "下颌角有一定转折，挂肉", con: "下巴短，可能略后缩" }
-                    ],
-                    face: [
-                        { label: "眼睛", score: 8.8, pro: "眼型圆润，眼尾上挑", con: "眼皮较薄，易肿" },
-                        { label: "鼻子", score: 7.5, pro: "小巧可爱", con: "鼻梁不高" }
-                    ],
-                    skin: [
-                        { label: "平整度", score: 8.5, pro: "细腻", con: "两颊易干" },
-                        { label: "光泽度", score: 8.2, pro: "健康肤色", con: "需提亮去黄" }
-                    ],
+                    name: "甜酷辣妹风", tags: ["短圆脸", "幼态感", "可盐可甜"],
+                    bone: [ { label: "面部立体度", score: 7.5, pro: "面部饱满", con: "立体度一般" }, { label: "下颌线条", score: 7.8, pro: "下颌有转折", con: "下巴短" } ],
+                    face: [ { label: "眼睛", score: 8.8, pro: "眼尾上挑", con: "眼皮薄" }, { label: "鼻子", score: 7.5, pro: "小巧", con: "鼻梁不高" } ],
+                    skin: [ { label: "平整度", score: 8.5, pro: "细腻", con: "两颊干" }, { label: "光泽度", score: 8.2, pro: "健康", con: "需去黄" } ],
                     premium: {
-                        starName: "Jennie / 虞书欣 / Lisa",
-                        similarity: 91,
-                        starDesc: "既有少女的无辜感（短圆脸），又有猫系的魅惑（上挑眼），风格可变性极强。",
-                        ratioData: [
-                            {label: "面部折叠度", val: "60° (圆润)"},
-                            {label: "三庭比例", val: "1:0.8:0.8 (幼态)"},
-                            {label: "中庭长度", val: "偏短 (减龄)"},
-                            {label: "下巴形态", val: "短圆"}
-                        ],
-                        hairstyle: {
-                            name: "高马尾 / 双丸子头 / 拳击辫",
-                            color: "白金 / 挂耳染 / 脏橘色",
-                            tips: "发型要强调头包脸，可以使用发带、发夹等配饰增加时尚感。"
-                        },
-                        fashion: {
-                            style: "Y2K / ABG / 纯欲风",
-                            colors: ["#FF69B4", "#000000", "#7FFF00", "#8A2BE2"],
-                            tips: "短上衣(Crop Top)、工装裤、百褶裙。适当露肤是精髓。"
-                        },
-                        makeup: [
-                            "<strong>眼妆：</strong>截断式眼妆或小烟熏；眼尾眼线要上挑。",
-                            "<strong>腮红：</strong>大面积打在眼下和鼻尖，增加氛围感。",
-                            "<strong>唇妆：</strong>镜面唇釉，打造嘟嘟唇效果。"
-                        ],
-                        medical: "千万不要垫长下巴！保留短下巴是幼态的关键。可以做一些T区提亮（玻尿酸或高光），让面中更饱满立体。"
+                        starName: "Jennie / 虞书欣", similarity: 91,
+                        starDesc: "既有少女的无辜感，又有猫系的魅惑。",
+                        ratioData: [{label: "面部折叠度", val: "60°"}, {label: "中庭长度", val: "偏短"}],
+                        hairstyle: { name: "高马尾 / 双丸子", color: "白金 / 挂耳染", tips: "强调头包脸。" },
+                        fashion: { style: "Y2K / ABG", colors: ["#FF69B4", "#000000", "#7FFF00"], tips: "适当露肤。" },
+                        makeup: ["眼妆：小烟熏", "唇妆：镜面唇釉"],
+                        medical: "不要垫长下巴！保留短圆脸特色。"
                     }
                 }
             ]
@@ -545,8 +415,7 @@
                 document.getElementById('coverPage').classList.add('hidden');
                 document.getElementById('uploadPage').classList.remove('hidden');
             } else {
-                document.getElementById('loginError').textContent = '卡密无效，请检查';
-                document.getElementById('loginError').style.display = 'block';
+                alert('卡密无效');
             }
         }
 
@@ -561,13 +430,13 @@
                     document.getElementById('uploadPlaceholder').style.display = 'none';
                     uploadedImg = img;
                     img.onload = () => { 
-                        // 移动端优化：图片加载完成后稍微延迟一下再分析，避免卡顿
+                        // 异步分析，防止卡死
                         setTimeout(() => {
                             const autoGender = analyzeGender(img);
                             setGender(autoGender);
                             document.getElementById('genderSection').classList.remove('hidden');
                             document.getElementById('analyzeBtn').classList.remove('hidden'); 
-                        }, 100);
+                        }, 200);
                     }
                 };
                 reader.readAsDataURL(file);
@@ -580,88 +449,89 @@
             document.getElementById('btnFemale').className = gender === 'female' ? 'gender-btn active' : 'gender-btn';
         }
 
+        // 优化版分析：缩小尺寸处理，提高兼容性
         function analyzeGender(img) {
-            // 移动端优化：使用离屏canvas，并缩小尺寸处理
-            const c = document.createElement('canvas');
-            const ctx = c.getContext('2d');
-            const w = 100; // 缩小处理尺寸，极大提升速度
-            const h = 100;
-            c.width = w; c.height = h;
-            
-            // 铺底色防透明图
-            ctx.fillStyle = '#FFFFFF';
-            ctx.fillRect(0,0,w,h);
-            
             try {
-                ctx.drawImage(img, 0, 0, w, h);
-                const data = ctx.getImageData(0,0,w,h).data;
+                const c = document.createElement('canvas');
+                const ctx = c.getContext('2d');
+                const size = 100; // 缩小到100x100处理，秒开
+                c.width = size; c.height = size;
+                
+                // 铺白底，防止透明图异常
+                ctx.fillStyle = "#ffffff";
+                ctx.fillRect(0, 0, size, size);
+                ctx.drawImage(img, 0, 0, size, size);
+                
+                const data = ctx.getImageData(0,0,size,size).data;
                 let skinPixels = 0; 
                 let grayPixels = 0; 
                 let totalSat = 0;   
-                
+
                 for(let i=0; i<data.length; i+=4) {
                     const r=data[i], g=data[i+1], b=data[i+2];
                     const max = Math.max(r,g,b), min = Math.min(r,g,b);
                     const diff = max - min;
                     
                     if(diff < 15) grayPixels++;
-                    
-                    // 宽容的肤色检测
                     if(r > 60 && r > g && r > b && diff > 10) {
                         skinPixels++;
                         if(max > 0) totalSat += (diff / max);
                     }
                 }
 
-                // 移动端判定阈值调整
-                const total = w * h;
-                if(grayPixels > total * 0.8) return 'qr'; 
-                if(skinPixels < total * 0.05) return 'scenery';
+                // 容错阈值
+                if(grayPixels > (size*size)*0.8) return 'qr'; 
+                if(skinPixels < (size*size)*0.05) return 'scenery';
                 
                 const avgSat = skinPixels > 0 ? (totalSat / skinPixels) : 0;
                 return (avgSat > 0.25) ? 'female' : 'male';
-                
             } catch(e) {
-                console.log('Image process error', e);
-                return 'male'; // 默认回退
+                console.error(e);
+                return 'male'; // 出错默认不做拦截，保证流程走通
             }
         }
 
+        // 核心修复：异步执行，UI先反馈
         function startAnalysis() {
-            const scan = document.getElementById('scanLine');
-            const txt = document.getElementById('processText');
-            
-            scan.style.display = 'block';
+            // 1. 马上更新UI，让用户知道点到了
+            document.getElementById('scanLine').style.display = 'block';
+            document.getElementById('processText').innerText = "启动AI视觉引擎...";
             document.getElementById('analyzeBtn').disabled = true;
 
-            const check = analyzeGender(uploadedImg);
-            
-            if(check === 'qr') {
-                showError("检测到二维码/文档", "请上传清晰的人像照片");
-                return;
-            }
-            if(check === 'scenery') {
-                showError("未检测到清晰人脸", "请上传人物正脸照片，不要上传风景、宠物或物品。");
-                return;
-            }
+            // 2. 延迟执行重逻辑
+            setTimeout(() => {
+                let check = 'male';
+                if(uploadedImg) {
+                    check = analyzeGender(uploadedImg);
+                }
 
-            const steps = ["定位面部关键点...", "计算三庭五眼比例...", "分析皮肤纹理...", "生成详细测评报告..."];
-            let i = 0;
-            const timer = setInterval(() => {
-                if(i < steps.length) { txt.textContent = steps[i]; i++; } 
-                else { clearInterval(timer); showResult(); }
-            }, 800);
+                if(check === 'qr') {
+                    showError("检测到二维码/文档", "请上传清晰的人像照片");
+                    return;
+                }
+                if(check === 'scenery') {
+                    showError("未检测到清晰人脸", "请上传人物正脸照片。");
+                    return;
+                }
+
+                // 模拟进度
+                const steps = ["定位面部关键点...", "计算三庭五眼...", "分析皮肤纹理...", "生成详细报告..."];
+                let i = 0;
+                const txt = document.getElementById('processText');
+                const timer = setInterval(() => {
+                    if(i < steps.length) { txt.textContent = steps[i]; i++; } 
+                    else { clearInterval(timer); showResult(); }
+                }, 600); // 稍微加快点速度
+            }, 100);
         }
 
         function showError(title, desc) {
-            document.getElementById('loginError').innerHTML = `<strong>${title}</strong><br>${desc}`;
-            document.getElementById('loginError').style.display = 'block';
+            document.getElementById('errorTitle').textContent = title;
+            document.getElementById('errorDesc').textContent = desc;
+            document.getElementById('errorModal').style.display = 'flex';
             document.getElementById('scanLine').style.display = 'none';
             document.getElementById('analyzeBtn').disabled = false;
-            // 3秒后自动消失
-            setTimeout(() => {
-                document.getElementById('loginError').style.display = 'none';
-            }, 3000);
+            document.getElementById('processText').innerText = "";
         }
 
         function renderScoreBar(item) {
@@ -773,7 +643,6 @@
         }
 
         function copyText(txt) {
-            // 移动端兼容写法
             const textArea = document.createElement("textarea");
             textArea.value = txt;
             document.body.appendChild(textArea);
